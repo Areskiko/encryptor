@@ -13,6 +13,8 @@ __status__ = "Development"
 
 #Import standard libraries
 import os
+import sys
+file = sys.argv[1]
 
 #Import kivy
 from kivy.app import App
@@ -36,19 +38,13 @@ class EnigmaScreen(Screen):
 
         #Getting the path to user/documents
         try:
-            x = os.getlogin()
-            y = 'C:\\Users\\' + str(x) + '\\'
+            y=file
         except:
             y = ''
 
-        self.grid1.add_widget(Label(text = "File placement"))
+        self.grid1.add_widget(Label(text = "File"))
         self.place = TextInput(text=str(y))
         self.grid1.add_widget(self.place)
-        
-
-        self.grid1.add_widget(Label(text = "File name"))
-        self.fName = TextInput()
-        self.grid1.add_widget(self.fName)
 
         self.grid1.add_widget(Label(text = "Password"))
         self.password = TextInput()
@@ -89,11 +85,7 @@ class EnigmaScreen(Screen):
     def parseFile(self):
         """Parses given file and puts the words in lists."""
         #Setting up the path to the file
-        Directory = self.place.text
-        Directory.replace("\\", "\\\\")
-        file = str(self.fName.text) + ".txt"
-        file.replace("\\", "\\\\")
-        fFile = Directory + "\\" + file
+        fFile = self.place.text
 
         wordsInLine = []
         LinesInFile = []
