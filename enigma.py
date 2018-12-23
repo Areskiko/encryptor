@@ -1,12 +1,127 @@
-class Enigma():
+#!/usr/bin/env python
 
-    def translation(self, mode, password):
+__author__ = "Stefan Mack"
+__copyright__ = "None"
+__credits__ = ["Stefan Mack, Torbjørn Wiik, Alexander Bjerga"]
+__license__ = "None"
+__version__ = "0"
+__maintainer__ = "Stefan Mack"
+__email__ = "stefan_mack@hotmail.com"
+__status__ = "Development"
+
+#Requires Kivy
+
+#Import standard libraries
+import os
+
+#Import kivy
+from kivy.app import App
+from kivy.uix.screenmanager import ScreenManager, Screen
+from kivy.uix.textinput import TextInput
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+from kivy.uix.gridlayout import GridLayout
+from kivy.clock import Clock
+from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.popup import Popup
+
+class EnigmaScreen(Screen):
+    def __init__(self, bColor, **kwargs):
+        """Initializes the screen and gets the standard path to the user."""
+        super(EnigmaScreen, self).__init__(**kwargs)
+        self.boxL = BoxLayout(orientation = 'vertical', size_hint=(1, 1))
+        self.grid1 = GridLayout(cols=2, rows=5, size_hint = (1, 0.6))
+        self.bind(on_enter=self.re_size)
+        self.bind(on_leave=self.re_size)
+
+        #Getting the path to user/documents
+        try:
+            x = os.getlogin()
+            y = 'C:\\Users\\' + str(x) + '\\'
+        except:
+            y = ''
+
+        self.grid1.add_widget(Label(text = "File placement"))
+        self.place = TextInput(text=str(y))
+        self.grid1.add_widget(self.place)
+        
+
+        self.grid1.add_widget(Label(text = "File name"))
+        self.fName = TextInput()
+        self.grid1.add_widget(self.fName)
+
+        self.grid1.add_widget(Label(text = "Password"))
+        self.password = TextInput()
+        self.grid1.add_widget(self.password)
+
+        self.grid1.add_widget(Label(text = "DeKey One"))
+        self.DeKey1 = TextInput()
+        self.grid1.add_widget(self.DeKey1)
+
+        self.grid1.add_widget(Label(text = "DeKey Two"))
+        self.DeKey2 = TextInput()
+        self.grid1.add_widget(self.DeKey2)
+
+        self.grid2 = GridLayout(cols = 2, rows = 1, size_hint = (1, 0.3))
+        self.enc = Button(text = "Encrypt", background_color = bColor)
+        self.enc.bind(on_press=self.encrypt)
+        self.grid2.add_widget(self.enc)
+        
+        self.dec = Button(text="Decrypt", background_color = bColor)
+        self.dec.bind(on_press=self.decrypt)
+        self.grid2.add_widget(self.dec)
+
+        self.boxL.add_widget(self.grid1)
+        self.boxL.add_widget(self.grid2)
+        self.backbtn = Button(text='Back', size_hint=(1,0.2), background_color = bColor)
+        self.backbtn.bind(on_press=self.back)
+        self.boxL.add_widget(self.backbtn)
+        self.add_widget(self.boxL)
+        
+    def re_size(self, instance, *args):
+        """Empty function to be re-purposed once imported."""
+        pass
+
+    def back(self, instance, *args):
+        """Empty function to be re-purposed once imported."""
+        pass
+
+    def parseFile(self):
+        """Parses given file and puts the words in lists."""
+        #Setting up the path to the file
+        Directory = self.place.text
+        Directory.replace("\\", "\\\\")
+        file = str(self.fName.text) + ".txt"
+        file.replace("\\", "\\\\")
+        fFile = Directory + "\\" + file
+
+        wordsInLine = []
+        LinesInFile = []
+
+        #Parses and catalogs the words
+        with open(fFile, mode="r") as f:
+            word = ""
+            for line in f:
+                for char in line:
+                    if char == "\n" or char == " " or char == "," or char == "." or char == "!" or char == "?":
+                        wordsInLine.append(word)
+                        word = ""
+                        wordsInLine.append(char)
+                    else:
+                        word = word + char
+                LinesInFile.append(wordsInLine)
+                wordsInLine = []
+
+        #Return the list of lists of words
+        return LinesInFile
+
+    def translation(self, mode):
         """Sets up a trantab with a custom alphabet."""
         normAlpha = "AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz1234567890"
         tempAlpha = normAlpha
-        for i in range(len(password)):
-            tempAlpha = tempAlpha.replace(password[i], "")
-        spesAlpha = password + tempAlpha
+        for i in range(len(self.password.text)):
+            tempAlpha = tempAlpha.replace(self.password.text[i], "")
+        spesAlpha = self.password.text + tempAlpha
 
         #Desciding how the alphabets are being set up
         if mode == "encrypt":
@@ -15,14 +130,32 @@ class Enigma():
             trantab = str.maketrans(spesAlpha, normAlpha)
         return trantab
 
-    def encrypt(self, text, DeKey1, DeKey2, password):
+    def writeToFile(self, blist, mode):
+        """Takes words from lists inside of lists and writes them to a specified file."""
+        #Setting up target file
+        Directory = self.place.text
+        Directory.replace("\\", "\\\\")
+        file = self.fName.text + ".txt"
+        if mode == "encrypt":
+            fFile = Directory + "\\enc_" + file
+        elif mode == "decrypt":
+            fFile = Directory + "\\dec_" + file
+
+        #Writing the words to the target file
+        with open(fFile, mode= "w") as f:
+            for slist in blist:
+                for word in slist:
+                    f.write(word)
+            f.close
+
+    def encrypt(self, instance):
         """Parses a target file, converts the information and writes it to a new file."""
         try:
             #Parsing file and gathering keywords to use for the encryption
-            BigList = text.split(" ")
+            BigList = self.parseFile()
             CompletedList =  []
-            DeKey1t = str(DeKey1)
-            DeKey2t = str(DeKey2)
+            DeKey1t = str(self.DeKey1.text)
+            DeKey2t = str(self.DeKey2.text)
 
             #Getting the number that marks the half of each keyword
             h1 = int(len(DeKey1t)/2)
@@ -58,22 +191,22 @@ class Enigma():
                 TempList.append(word)
             CompletedList.append(TempList)
             #Writing to file
-            sentence = ""
-            for lis in CompletedList:
-                for word in lis:
-                    sentence += word+" "
-            return sentence
-        except Exception as e:
-            return ["Failure", e]
+            self.writeToFile(CompletedList, "encrypt")
+        except:
+            #Exception warning
+            popup = Popup(title='Uh Oh',
+            content=Label(text='One or more inputs are invalid!'),
+            size_hint=(None, None), size=(390, 400))
+            popup.open()
 
-    def decrypt(self, text, DeKey1, DeKey2, password):
+    def decrypt(self, instance):
         """Parses a target file, converts the information and writes it to a new file."""
         try:
             #Parsing file and gathering keywords to use for the encryption
-            BigList = text.split(" ")
+            BigList = self.parseFile()
             CompletedList = []
-            DeKey1t = str(DeKey1)
-            DeKey2t = str(DeKey2)
+            DeKey1t = str(self.DeKey1.text)
+            DeKey2t = str(self.DeKey2.text)
 
             #Getting the number that marks the half of each keyword
             h1 = int(len(DeKey1t)/2)
@@ -138,27 +271,22 @@ class Enigma():
                 TempList.append(word)
             CompletedList.append(TempList)
             #Writing to file
-            sentence = ""
-            for lis in CompletedList:
-                for word in lis:
-                    sentence += word+" "
-            return sentence
-        except Exception as e:
-            return ["Failure", e]
+            self.writeToFile(CompletedList, "decrypt")
+        except:
+            #Exception warning
+            popup = Popup(title='Uh Oh',
+            content=Label(text='One or more inputs are invalid!'),
+            size_hint=(None, None), size=(390, 400))
+            popup.open()
+            
+if __name__ == '__main__':
+    bColor = [1,1,1,1]
+    sm = ScreenManager()
+    sm.add_widget(EnigmaScreen(bColor, name='eng'))
+    sm.current = "eng"
 
-if __name__ == "__main__":
-    mac = Enigma()
-    #'enc', 'Jeg heter stefan', 'zipo', 'leto', 'kalu'
-    to = "Jeg heter stefan"
-    d1 = "zipo"
-    d2 = "leto"
-    pa = "kalu"
-    enc = mac.encrypt(to, d1, d2, pa)
-    dec = mac.decrypt(enc, d1, d2 ,pa)
-    print(dec)
-    to=""
-    for i in range(12):
-        to = to+str(i)
-        enc = mac.encrypt(to, d1, d2, pa)
-        dec = mac.decrypt(enc, d1, d2, pa)
-        print(dec)
+    class EnigmaApp(App):
+        def build(self):
+            return sm
+
+    EnigmaApp().run()
